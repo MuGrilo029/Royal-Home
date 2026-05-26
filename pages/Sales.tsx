@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '../store';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { Card, Button, Input, Select, Badge, formatCpfCnpj, formatPhone, Modal } from '../components/UI';
 import {
   ShoppingCart, Trash2, Plus, Minus, Check, Search, User, MapPin, Phone, FileText, Send,
@@ -167,6 +168,7 @@ const ConfirmationView: React.FC<{
 // --- MAIN COMPONENT: SALES ---
 export const Sales: React.FC = () => {
   const { products, addSale, updateSale, sales, editingSaleId, setEditingSaleId, pendingSale, setPendingSale, customers, addCustomer, navigateTo, categories: allCategories, companySettings, currentView, cardFees } = useAppStore();
+  const isMobile = useIsMobile();
   const [step, setStep] = useState<SalesStep>('POS');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('Todos');
@@ -320,6 +322,9 @@ export const Sales: React.FC = () => {
   // Custom Item Modal State
   const [showCustomItemModal, setShowCustomItemModal] = useState(false);
   const [customItemForm, setCustomItemForm] = useState({ name: '', price: '', observations: '' });
+
+  // Mobile cart sheet state
+  const [showMobileCart, setShowMobileCart] = useState(false);
 
   const handleAddCustomItem = () => {
     if (!customItemForm.name || !customItemForm.price) return alert('Nome e Valor são obrigatórios');
@@ -503,6 +508,166 @@ export const Sales: React.FC = () => {
   };
 
   const serviceItems = tempCartWithServices.filter(item => item.category === 'Serviços');
+
+  // --- MOBILE LAYOUT FOR POS STEP ---
+  if (isMobile && step === 'POS') {
+    return (
+      <div className="pb-24 px-4 pt-4 space-y-4">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-3.5 text-gray-400" size={18} />
+          <input
+            className="w-full pl-10 p-3 border rounded-lg mobile-search-input"
+            placeholder="Buscar produtos..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {/* Category Chips */}
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 snap-x">
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`mobile-chip ${selectedCategory === cat ? 'active' : ''}`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Product List */}
+        <div className="space-y-2">
+          {/* Custom Item */}
+          <div onClick={() => setShowCustomItemModal(true)} className="mobile-card flex items-center justify-between border-2 border-dashed border-wine-300">
+            <div className="flex items-center gap-3">
+              <Plus size={20} className="text-wine-600" />
+              <div>
+                <p className="font-bold text-sm">Item Avulso</p>
+                <p className="text-xs text-gray-500">Adicionar produto</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Products */}
+          {filteredProducts.map(p => (
+            <div
+              key={p.id}
+              onClick={() => addToCart(p)}
+              className="mobile-product-item border-0 bg-white dark:bg-slate-800 border-b dark:border-slate-700"
+            >
+              <div className="flex-1">
+                <p className="font-bold text-sm">{p.name}</p>
+                <p className="text-xs text-gray-500">{p.category}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-sm">R$ {p.price.toFixed(2)}</p>
+                {p.quantity === 0 && <p className="text-xs text-red-600">Sem estoque</p>}
+              </div>
+              <button className="mobile-product-item add-btn">+</button>
+            </div>
+          ))}
+        </div>
+
+        {/* Floating Cart Button */}
+        {cart.length > 0 && (
+          <button
+            onClick={() => setShowMobileCart(true)}
+            className="floating-cart-btn"
+          >
+            <ShoppingCart size={24} />
+            <span className="badge">{cart.length}</span>
+          </button>
+        )}
+
+        {/* Mobile Cart Bottom Sheet */}
+        <div className={`mobile-bottom-sheet ${showMobileCart ? 'open' : ''}`}>
+          <div className="handle" />
+          <div className="p-4 flex-1 overflow-y-auto space-y-3">
+            {cart.length === 0 ? (
+              <p className="text-center text-gray-400 py-8">Carrinho vazio</p>
+            ) : (
+              cart.map(item => (
+                <div key={item.id} className="mobile-card space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-bold text-sm">{item.name}</p>
+                      <p className="text-xs text-gray-500">{item.category}</p>
+                    </div>
+                    <button
+                      onClick={() => removeFromCart(item.id)}
+                      className="text-red-600 p-1"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 justify-between">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => updateQuantity(item.id, -1)}
+                        className="p-1 border rounded"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <span className="w-6 text-center text-sm font-bold">{item.cartQty}</span>
+                      <button
+                        onClick={() => updateQuantity(item.id, 1)}
+                        className="p-1 border rounded"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                    <div className="text-right">
+                      <input
+                        type="number"
+                        className="w-16 text-xs border rounded p-1 text-right"
+                        value={item.price.toFixed(2)}
+                        onChange={e => updatePrice(item.id, Number(e.target.value))}
+                      />
+                      <p className="text-xs text-gray-500">c/un</p>
+                    </div>
+                    <p className="font-bold text-sm min-w-[60px] text-right">
+                      R$ {(item.price * item.cartQty).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="p-4 border-t space-y-3">
+            <div className="flex justify-between text-lg font-black">
+              <span>Total:</span>
+              <span>R$ {subtotal.toFixed(2)}</span>
+            </div>
+            <Button
+              className="w-full"
+              disabled={cart.length === 0}
+              onClick={() => {
+                const services = cart.filter(i => i.category === 'Serviços');
+                if (services.length > 0) {
+                  setTempCartWithServices(cart);
+                  setCurrentServiceIndex(0);
+                  setShowServiceModal(true);
+                } else {
+                  setStep('CHECKOUT');
+                }
+                setShowMobileCart(false);
+              }}
+            >
+              Prosseguir <ArrowRight className="ml-2" size={16} />
+            </Button>
+            <button
+              onClick={() => setShowMobileCart(false)}
+              className="w-full py-2 text-gray-600 hover:bg-gray-100 rounded"
+            >
+              Continuar comprando
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

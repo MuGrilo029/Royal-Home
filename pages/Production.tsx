@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { Card, Badge, Button, Input } from '../components/UI';
 import { Wrench, CheckCircle, Clock, PlayCircle, ArrowRight, ArrowLeft, FileText, Image as ImageIcon, User, MapPin, Phone, Calendar, ZoomIn, X, Search, Printer, Plus } from 'lucide-react';
 import { ProductionOrder, FurnitureSpecs, Product } from '../types';
@@ -180,6 +181,7 @@ const OrderCard: React.FC<{ order: ProductionOrder; onClick: (order: ProductionO
 
 export const Production: React.FC = () => {
   const { productionOrders, updateProductionOrderStatus, addProductionOrder, addNotification, companySettings } = useAppStore();
+  const isMobile = useIsMobile();
   const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(null);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -193,6 +195,9 @@ export const Production: React.FC = () => {
   });
   const [manualSpecs, setManualSpecs] = useState<{ type: 'INTERNAL' | 'OUTSOURCED', data: string } | null>(null);
   const [showSpecsModal, setShowSpecsModal] = useState(false);
+
+  // Mobile tab state
+  const [mobileTab, setMobileTab] = useState<'PENDING' | 'IN_PROGRESS' | 'COMPLETED'>('PENDING');
 
   // Date Filter State
   type TimeRange = 'TODAY' | 'WEEK' | 'MONTH' | 'YEAR' | 'CUSTOM';
@@ -295,6 +300,106 @@ export const Production: React.FC = () => {
     setManualForm({ customerName: '', customerPhone: '', itemName: '', quantity: 1 });
     setManualSpecs(null);
   };
+
+  // --- MOBILE LAYOUT ---
+  if (isMobile && !selectedOrder) {
+    const tabOrders = mobileTab === 'PENDING' ? pending : mobileTab === 'IN_PROGRESS' ? inProgress : completed;
+
+    return (
+      <div className="pb-20 pt-4 space-y-4">
+        {/* Header */}
+        <div className="px-4 mb-2">
+          <h1 className="text-lg font-black text-wine-900 dark:text-white">Produção</h1>
+          <p className="text-sm text-wine-500 dark:text-slate-400">Gerencie suas ordens</p>
+        </div>
+
+        {/* Search */}
+        <div className="px-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+            <input
+              className="w-full pl-10 p-2 border rounded-lg mobile-search-input"
+              placeholder="Buscar ordem..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="px-4 flex gap-2 overflow-x-auto pb-2 snap-x">
+          <button
+            onClick={() => setMobileTab('PENDING')}
+            className={`mobile-tab ${mobileTab === 'PENDING' ? 'active' : ''}`}
+          >
+            A Fazer {pending.length > 0 && <span className="ml-1 text-xs font-black">{pending.length}</span>}
+          </button>
+          <button
+            onClick={() => setMobileTab('IN_PROGRESS')}
+            className={`mobile-tab ${mobileTab === 'IN_PROGRESS' ? 'active' : ''}`}
+          >
+            Produzindo {inProgress.length > 0 && <span className="ml-1 text-xs font-black">{inProgress.length}</span>}
+          </button>
+          <button
+            onClick={() => setMobileTab('COMPLETED')}
+            className={`mobile-tab ${mobileTab === 'COMPLETED' ? 'active' : ''}`}
+          >
+            Concluído {completed.length > 0 && <span className="ml-1 text-xs font-black">{completed.length}</span>}
+          </button>
+        </div>
+
+        {/* Order List */}
+        <div className="px-4 space-y-2">
+          {tabOrders.map(order => (
+            <div
+              key={order.id}
+              onClick={() => handleOpenDetails(order)}
+              className="mobile-card flex flex-col gap-2 cursor-pointer border-l-4 border-l-wine-900"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-wine-900 dark:text-white">#{order.id.slice(0, 4)}</p>
+                  <p className="text-xs text-gray-500">{new Date(order.date).toLocaleDateString()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-sm line-clamp-2 max-w-[140px] text-wine-900 dark:text-white">{order.itemName}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-wine-100 dark:border-slate-700 pt-2">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-bold">Cliente</p>
+                  <p className="font-bold text-sm text-wine-900 dark:text-white">{order.customerName.split(' ')[0]}</p>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (order.status === 'PENDING') {
+                      updateProductionOrderStatus(order.id, 'IN_PROGRESS');
+                    } else if (order.status === 'IN_PROGRESS') {
+                      if (confirm('Deseja marcar como concluído?')) {
+                        updateProductionOrderStatus(order.id, 'COMPLETED');
+                      }
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded text-xs font-bold text-white transition-all ${
+                    order.status === 'PENDING' ? 'bg-blue-600 active:bg-blue-700' : 'bg-green-600 active:bg-green-700'
+                  }`}
+                >
+                  {order.status === 'PENDING' ? 'Iniciar' : 'Concluir'}
+                </button>
+              </div>
+            </div>
+          ))}
+          {tabOrders.length === 0 && (
+            <div className="text-center py-12 text-gray-400">
+              <p className="text-sm">Nenhuma ordem nesta etapa</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // --- FULL PAGE DETAIL VIEW ---
   if (selectedOrder) {

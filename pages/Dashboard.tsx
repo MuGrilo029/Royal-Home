@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../store';
 import { Card, Button, Input } from '../components/UI';
 import { parseISO, isInRange as utilsIsInRange } from '../lib/utils';
+import { useIsMobile } from '../hooks/useIsMobile';
 import {
   DollarSign,
   Package,
@@ -38,6 +39,7 @@ type ComparisonMode = 'PREVIOUS_PERIOD' | 'SAME_PERIOD_LAST_YEAR';
 
 export const Dashboard: React.FC = () => {
   const { transactions, products, sales, categories, categoryGroups } = useAppStore();
+  const isMobile = useIsMobile();
   const [timeRange, setTimeRange] = useState<TimeRange>('MONTH');
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>('PREVIOUS_PERIOD');
 
@@ -262,6 +264,85 @@ export const Dashboard: React.FC = () => {
     return Object.values(stats).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
   }, [sales, startDate, endDate]);
 
+  // --- MOBILE LAYOUT ---
+  if (isMobile) {
+    return (
+      <div className="pb-20 px-4 pt-4 space-y-4">
+        {/* Mobile Header */}
+        <div className="mb-6">
+          <h1 className="text-xl font-black text-wine-900 dark:text-white">Bem-vindo de volta!</h1>
+          <p className="text-sm text-wine-500 dark:text-slate-400">Seu resumo do mês</p>
+        </div>
+
+        {/* Time Range Pills */}
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory">
+          {[
+            { id: 'TODAY', label: 'Hoje' },
+            { id: 'WEEK', label: '7 Dias' },
+            { id: 'MONTH', label: 'Mês' },
+            { id: 'YEAR', label: 'Ano' }
+          ].map((r) => (
+            <button
+              key={r.id}
+              onClick={() => setTimeRange(r.id as TimeRange)}
+              className={`mobile-chip ${timeRange === r.id ? 'active' : ''}`}
+              style={timeRange === r.id ? { backgroundColor: '#1a1a1a', borderColor: '#1a1a1a' } : undefined}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 4 KPI Cards - Stacked Vertically */}
+        <div className="space-y-3">
+          {/* 1. Lucro Líquido */}
+          <MobileKPICard
+            label="💰 Lucro Líquido"
+            value={currentStats.balance}
+            prevValue={prevStats.balance}
+            isCurrency
+            highlight
+          />
+
+          {/* 2. Faturamento */}
+          <MobileKPICard
+            label="📈 Faturamento"
+            value={currentStats.revenue}
+            prevValue={prevStats.revenue}
+            isCurrency
+          />
+
+          {/* 3. Vendas */}
+          <MobileKPICard
+            label="📊 Vendas do Período"
+            value={currentStats.salesCount}
+            prevValue={prevStats.salesCount}
+          />
+
+          {/* 4. Estoque Crítico */}
+          <MobileKPICard
+            label="📦 Estoque Crítico"
+            value={stockStats.lowStock}
+            prevValue={stockStats.lowStock}
+            inverseColor
+          />
+        </div>
+
+        {/* Stock Alert - if there are critical items */}
+        {stockStats.lowStock > 0 && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-12px p-4 flex gap-3">
+            <AlertCircle size={20} className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-sm text-red-900 dark:text-red-300">Atenção: Estoque Crítico</p>
+              <p className="text-xs text-red-700 dark:text-red-400 mt-1">{stockStats.lowStock} produto(s) abaixo do mínimo</p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // --- DESKTOP LAYOUT (existing code) ---
   return (
     <div className="space-y-6 animate-fade-in pb-10">
 
@@ -546,6 +627,37 @@ export const Dashboard: React.FC = () => {
 const calcChange = (curr: number, prev: number) => {
   if (prev === 0) return curr > 0 ? 100 : 0;
   return ((curr - prev) / prev) * 100;
+};
+
+const MobileKPICard: React.FC<{
+  label: string;
+  value: number;
+  prevValue: number;
+  isCurrency?: boolean;
+  inverseColor?: boolean;
+  highlight?: boolean;
+}> = ({ label, value, prevValue, isCurrency, inverseColor, highlight }) => {
+  const change = calcChange(value, prevValue);
+  const isPositive = change >= 0;
+  const isGood = inverseColor ? !isPositive : isPositive;
+
+  return (
+    <div
+      className={`${highlight ? 'kpi-card-highlight' : 'mobile-kpi-card'} flex justify-between items-start`}
+    >
+      <div className="flex-1">
+        <div className="label">{label}</div>
+        <div className="value">
+          {isCurrency ? `R$ ${(value / 1000).toFixed(1)}k` : value}
+        </div>
+        {prevValue !== 0 && (
+          <div className={`trend ${isGood ? 'up' : 'down'}`}>
+            {isPositive ? '📈' : '📉'} {Math.abs(change).toFixed(0)}%
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 const SummaryPanel = ({ title, heroLabel, heroValue, heroPrevValue, heroInverse, icon, children, isCurrency, isPercent }: any) => {

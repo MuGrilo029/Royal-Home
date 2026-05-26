@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useIsMobile } from './hooks/useIsMobile';
 import { AppProvider, useAppStore } from './store';
 import { AppView } from './types';
 import { Dashboard } from './pages/Dashboard';
@@ -81,7 +82,9 @@ import { Login } from './pages/Login';
 const AppContent: React.FC = () => {
   const { currentView, navigateTo, darkMode, toggleDarkMode, companySettings, users, isInitialized, refreshData, addNotification } = useAppStore();
   const { user, loading, signOut } = useAuth(); // Use Auth Context
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const isMobile = useIsMobile();
+  const [isSidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [isMobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   
   const [hasSelectedModule, setHasSelectedModule] = useState(() => {
     return localStorage.getItem('ROYAL_HOME_MODULE_SELECTED') === 'true';
@@ -163,7 +166,10 @@ const AppContent: React.FC = () => {
   const handleNavigate = (view: AppView) => {
     if (hasAccess(view)) {
       navigateTo(view);
-      if (window.innerWidth < 768) setSidebarOpen(false);
+      if (isMobile) {
+        setSidebarOpen(false);
+        setMobileDrawerOpen(false);
+      }
     } else {
       alert('Acesso Negado: Você não tem permissão para acessar este módulo.');
     }
@@ -251,31 +257,147 @@ const AppContent: React.FC = () => {
   const hasSectionAccess = (views: AppView[]) => views.some(v => hasAccess(v));
 
   const MobileBottomNav = () => {
+    const navItems: { view: AppView; icon: React.ReactNode; label: string }[] = [
+      { view: 'DASHBOARD', icon: <LayoutDashboard size={22} />, label: 'Início' },
+      { view: 'SALES', icon: <ShoppingCart size={22} />, label: 'Vendas' },
+      { view: 'PRODUCTION', icon: <Wrench size={22} />, label: 'Produção' },
+    ];
+
     return (
-      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-slate-900 border-t border-wine-100 dark:border-slate-800 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] z-40 flex justify-around items-center px-1 pb-safe transition-colors duration-200">
-        {hasAccess('DASHBOARD') && (
-          <button onClick={() => navigateTo('DASHBOARD')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${currentView === 'DASHBOARD' ? 'text-wine-700 dark:text-wine-400 scale-110 transition-transform' : 'text-slate-400 hover:text-wine-600 dark:hover:text-wine-300 transition-colors'}`}>
-            <LayoutDashboard size={20} />
-            <span className="text-[10px] font-bold tracking-tight">Início</span>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 shadow-[0_-2px_20px_rgba(0,0,0,0.08)] z-40 pb-safe transition-colors duration-200">
+        <div className="flex justify-around items-center h-16 px-2">
+          {navItems.filter(item => hasAccess(item.view)).map(item => (
+            <button
+              key={item.view}
+              onClick={() => handleNavigate(item.view)}
+              className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-200 ${
+                currentView === item.view
+                  ? 'text-wine-900 dark:text-white'
+                  : 'text-gray-400 dark:text-slate-500'
+              }`}
+            >
+              <div className={`transition-all duration-200 ${currentView === item.view ? 'scale-110' : ''}`}>
+                {item.icon}
+              </div>
+              <span className={`text-[10px] font-bold tracking-tight ${currentView === item.view ? 'opacity-100' : 'opacity-60'}`}>{item.label}</span>
+              {currentView === item.view && (
+                <div className="absolute bottom-1 w-5 h-0.5 rounded-full bg-wine-900 dark:bg-white" />
+              )}
+            </button>
+          ))}
+          <button
+            onClick={() => setMobileDrawerOpen(true)}
+            className="flex flex-col items-center justify-center flex-1 h-full gap-0.5 text-gray-400 dark:text-slate-500 transition-colors"
+          >
+            <Menu size={22} />
+            <span className="text-[10px] font-bold tracking-tight opacity-60">Menu</span>
           </button>
-        )}
-        {hasAccess('SALES') && (
-          <button onClick={() => navigateTo('SALES')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${currentView === 'SALES' ? 'text-wine-700 dark:text-wine-400 scale-110 transition-transform' : 'text-slate-400 hover:text-wine-600 dark:hover:text-wine-300 transition-colors'}`}>
-            <ShoppingCart size={20} />
-            <span className="text-[10px] font-bold tracking-tight">Vendas</span>
-          </button>
-        )}
-        {hasAccess('PRODUCTION') && (
-          <button onClick={() => navigateTo('PRODUCTION')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${currentView === 'PRODUCTION' ? 'text-wine-700 dark:text-wine-400 scale-110 transition-transform' : 'text-slate-400 hover:text-wine-600 dark:hover:text-wine-300 transition-colors'}`}>
-            <Wrench size={20} />
-            <span className="text-[10px] font-bold tracking-tight">Produção</span>
-          </button>
-        )}
-        <button onClick={() => setSidebarOpen(true)} className="flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-400 hover:text-wine-600 dark:hover:text-wine-300 transition-colors">
-          <Menu size={20} />
-          <span className="text-[10px] font-bold tracking-tight">Menu</span>
-        </button>
+        </div>
       </div>
+    );
+  };
+
+  // Full-screen mobile drawer menu
+  const MobileDrawer = () => {
+    const allNavItems: { view: AppView; icon: React.ReactNode; label: string; section: string }[] = [
+      { view: 'DASHBOARD', icon: <LayoutDashboard size={22} />, label: 'Dashboard', section: 'Geral' },
+      { view: 'REPORTS', icon: <TrendingUp size={22} />, label: 'Relatórios', section: 'Geral' },
+      { view: 'PAYABLES', icon: <ArrowDownCircle size={22} />, label: 'Contas a Pagar', section: 'Financeiro' },
+      { view: 'RECEIVABLES', icon: <ArrowUpCircle size={22} />, label: 'Contas a Receber', section: 'Financeiro' },
+      { view: 'BOLETOS', icon: <FileText size={22} />, label: 'Boletos', section: 'Financeiro' },
+      { view: 'SALES', icon: <ShoppingCart size={22} />, label: 'Vendas / PDV', section: 'Comercial' },
+      { view: 'SALES_HISTORY', icon: <History size={22} />, label: 'Histórico de Vendas', section: 'Comercial' },
+      { view: 'QUOTES', icon: <FileSpreadsheet size={22} />, label: 'Orçamentos', section: 'Comercial' },
+      { view: 'CUSTOMERS', icon: <UserCheck size={22} />, label: 'Clientes', section: 'Comercial' },
+      { view: 'INVENTORY', icon: <Package size={22} />, label: 'Estoque', section: 'Operação' },
+      { view: 'PRODUCTION', icon: <Wrench size={22} />, label: 'Produção', section: 'Operação' },
+      { view: 'SUPPLIERS', icon: <Users size={22} />, label: 'Fornecedores', section: 'Operação' },
+      { view: 'ORDERS', icon: <Package size={22} />, label: 'Encomendas', section: 'Operação' },
+      { view: 'DELIVERIES', icon: <Truck size={22} />, label: 'Entregas', section: 'Operação' },
+      { view: 'SETTINGS', icon: <Settings size={22} />, label: 'Configurações', section: 'Sistema' },
+    ];
+
+    const accessibleItems = allNavItems.filter(item => hasAccess(item.view));
+    const sections = [...new Set(accessibleItems.map(item => item.section))];
+
+    return (
+      <>
+        <div
+          className={`mobile-drawer-overlay ${isMobileDrawerOpen ? 'open' : ''}`}
+          onClick={() => setMobileDrawerOpen(false)}
+        />
+        <div className={`mobile-drawer ${isMobileDrawerOpen ? 'open' : ''} dark:bg-slate-900`}>
+          {/* Drawer Header */}
+          <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-lg" style={{ backgroundColor: companySettings.primaryColor }}>
+                {companySettings.name?.charAt(0) || 'G'}
+              </div>
+              <div>
+                <h2 className="font-bold text-gray-900 dark:text-white text-lg">{companySettings.name}</h2>
+                <p className="text-xs text-gray-400">{user?.email}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setMobileDrawerOpen(false)}
+              className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-500"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Navigation Items */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {sections.map(section => (
+              <div key={section}>
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-slate-500 px-3 mb-2">{section}</p>
+                <div className="space-y-1">
+                  {accessibleItems.filter(item => item.section === section).map(item => (
+                    <button
+                      key={item.view}
+                      onClick={() => handleNavigate(item.view)}
+                      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all text-left ${
+                        currentView === item.view
+                          ? 'bg-gray-900 dark:bg-slate-700 text-white font-bold shadow-md'
+                          : 'text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className={`${currentView === item.view ? 'text-white' : 'text-gray-400 dark:text-slate-500'}`}>
+                        {item.icon}
+                      </div>
+                      <span className="text-[15px] font-medium">{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Drawer Footer */}
+          <div className="p-4 border-t border-gray-100 dark:border-slate-800 space-y-2">
+            <div className="flex items-center gap-3 px-4 py-2">
+              <button
+                onClick={toggleDarkMode}
+                className="flex items-center gap-3 text-gray-600 dark:text-slate-300"
+              >
+                {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+                <span className="text-sm font-medium">{darkMode ? 'Modo Claro' : 'Modo Escuro'}</span>
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                updateHasSelectedModule(false);
+                signOut();
+                setMobileDrawerOpen(false);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+            >
+              <LogOut size={20} />
+              <span className="text-sm font-bold">Sair</span>
+            </button>
+          </div>
+        </div>
+      </>
     );
   };
 
@@ -288,192 +410,220 @@ const AppContent: React.FC = () => {
       } as React.CSSProperties}
     >
       <NotificationContainer />
-      {/* Sidebar */}
-      <aside
-        className={`${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 w-64 md:w-20'} fixed md:relative z-30 h-full theme-bg-primary text-white transition-all duration-300 ease-in-out flex flex-col shadow-xl print:hidden`}
-      >
-        <button 
-          onClick={() => updateHasSelectedModule(false)}
-          className={`p-6 border-b theme-border-primary flex items-center ${isSidebarOpen ? 'gap-3 justify-start' : 'justify-center'} hover:opacity-90 transition duration-200 text-left w-full focus:outline-none`}
+
+      {/* Desktop Sidebar - hidden on mobile */}
+      {!isMobile && (
+        <aside
+          className={`${isSidebarOpen ? 'w-64' : 'w-20'} relative h-full theme-bg-primary text-white transition-all duration-300 ease-in-out flex flex-col shadow-xl print:hidden`}
         >
-          <TrendingUp className="w-8 h-8 text-white shrink-0" />
-          {isSidebarOpen && (
-            <span className="text-xl font-bold tracking-tight truncate" title={companySettings.name}>
-              {companySettings.name}
-            </span>
-          )}
-        </button>
-
-        <nav className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-              {/* GERAL */}
-          {hasSectionAccess(['DASHBOARD', 'REPORTS']) && (
-            <div>
-              <NavCategoryBtn
-                title="Geral"
-                isOpen={expandedSections.geral}
-                onClick={() => toggleSection('geral')}
-              />
-              {(expandedSections.geral || !isSidebarOpen) && (
-                <div className="space-y-1 animate-fade-in-down">
-                  <NavItem view="DASHBOARD" icon={<LayoutDashboard size={20} />} label="Dashboard" />
-                  <NavItem view="REPORTS" icon={<TrendingUp size={20} />} label="Relatórios" />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* FINANCEIRO */}
-          {hasSectionAccess(['PAYABLES', 'RECEIVABLES', 'BOLETOS']) && (
-            <div>
-              <NavCategoryBtn
-                title="Financeiro"
-                isOpen={expandedSections.financeiro}
-                onClick={() => toggleSection('financeiro')}
-              />
-              {(expandedSections.financeiro || !isSidebarOpen) && (
-                <div className="space-y-1 animate-fade-in-down">
-                  <NavItem view="PAYABLES" icon={<ArrowDownCircle size={20} />} label="Contas a Pagar" />
-                  <NavItem view="RECEIVABLES" icon={<ArrowUpCircle size={20} />} label="Contas a Receber" />
-                  <NavItem view="BOLETOS" icon={<FileText size={20} />} label="Boletos" />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* COMERCIAL */}
-          {hasSectionAccess(['SALES', 'SALES_HISTORY', 'QUOTES', 'CUSTOMERS']) && (
-            <div>
-              <NavCategoryBtn
-                title="Comercial"
-                isOpen={expandedSections.comercial}
-                onClick={() => toggleSection('comercial')}
-              />
-              {(expandedSections.comercial || !isSidebarOpen) && (
-                <div className="space-y-1 animate-fade-in-down">
-                  <NavItem view="SALES" icon={<ShoppingCart size={20} />} label="Vendas / PDV" />
-                  <NavItem view="SALES_HISTORY" icon={<History size={20} />} label="Histórico de Vendas" />
-                  <NavItem view="QUOTES" icon={<FileSpreadsheet size={20} />} label="Orçamentos" />
-                  <NavItem view="CUSTOMERS" icon={<UserCheck size={20} />} label="Clientes" />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* OPERAÇÃO */}
-          {hasSectionAccess(['INVENTORY', 'PRODUCTION', 'SUPPLIERS', 'ORDERS', 'DELIVERIES']) && (
-            <div>
-              <NavCategoryBtn
-                title="Operação"
-                isOpen={expandedSections.operacao}
-                onClick={() => toggleSection('operacao')}
-              />
-              {(expandedSections.operacao || !isSidebarOpen) && (
-                <div className="space-y-1 animate-fade-in-down">
-                  <NavItem view="INVENTORY" icon={<Package size={20} />} label="Estoque" />
-                  <NavItem view="PRODUCTION" icon={<Wrench size={20} />} label="Produção" />
-                  <NavItem view="SUPPLIERS" icon={<Users size={20} />} label="Fornecedores" />
-                  <NavItem view="ORDERS" icon={<Package size={20} />} label="Encomendas" />
-                  <NavItem view="DELIVERIES" icon={<Truck size={20} />} label="Entregas" />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* SISTEMA */}
-          {hasSectionAccess(['IMPORT_EXPORT', 'SETTINGS']) && (
-            <div>
-              <NavCategoryBtn
-                title="Sistema"
-                isOpen={expandedSections.sistema}
-                onClick={() => toggleSection('sistema')}
-              />
-              {(expandedSections.sistema || !isSidebarOpen) && (
-                <div className="space-y-1 animate-fade-in-down">
-                  <NavItem view="SETTINGS" icon={<Settings size={20} />} label="Configurações" />
-                </div>
-              )}
-            </div>
-          )}
-        </nav>
-
-        <div className="p-4 border-t border-wine-800">
-          {isSidebarOpen && (
-            <div className="px-4 py-2 mb-2 text-xs text-wine-300">
-              <span className="opacity-75">Acesso: </span>
-              <span className="font-bold text-white uppercase">{userRoles.join(', ') || 'Sem Função'}</span>
-            </div>
-          )}
-          <button
-            onClick={() => {
-              updateHasSelectedModule(false);
-              signOut();
-            }}
-            className={`flex items-center ${isSidebarOpen ? 'gap-3 px-4' : 'justify-center px-0'} py-2 text-wine-200 hover:text-white hover:bg-wine-800 rounded-lg transition-colors w-full`}
-            title={!isSidebarOpen ? 'Sair' : undefined}
+          <button 
+            onClick={() => updateHasSelectedModule(false)}
+            className={`p-6 border-b theme-border-primary flex items-center ${isSidebarOpen ? 'gap-3 justify-start' : 'justify-center'} hover:opacity-90 transition duration-200 text-left w-full focus:outline-none`}
           >
-            <LogOut size={20} className="shrink-0" />
-            {isSidebarOpen && <span>Sair</span>}
+            <TrendingUp className="w-8 h-8 text-white shrink-0" />
+            {isSidebarOpen && (
+              <span className="text-xl font-bold tracking-tight truncate" title={companySettings.name}>
+                {companySettings.name}
+              </span>
+            )}
           </button>
-        </div>
-      </aside>
+
+          <nav className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                {/* GERAL */}
+            {hasSectionAccess(['DASHBOARD', 'REPORTS']) && (
+              <div>
+                <NavCategoryBtn
+                  title="Geral"
+                  isOpen={expandedSections.geral}
+                  onClick={() => toggleSection('geral')}
+                />
+                {(expandedSections.geral || !isSidebarOpen) && (
+                  <div className="space-y-1 animate-fade-in-down">
+                    <NavItem view="DASHBOARD" icon={<LayoutDashboard size={20} />} label="Dashboard" />
+                    <NavItem view="REPORTS" icon={<TrendingUp size={20} />} label="Relatórios" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* FINANCEIRO */}
+            {hasSectionAccess(['PAYABLES', 'RECEIVABLES', 'BOLETOS']) && (
+              <div>
+                <NavCategoryBtn
+                  title="Financeiro"
+                  isOpen={expandedSections.financeiro}
+                  onClick={() => toggleSection('financeiro')}
+                />
+                {(expandedSections.financeiro || !isSidebarOpen) && (
+                  <div className="space-y-1 animate-fade-in-down">
+                    <NavItem view="PAYABLES" icon={<ArrowDownCircle size={20} />} label="Contas a Pagar" />
+                    <NavItem view="RECEIVABLES" icon={<ArrowUpCircle size={20} />} label="Contas a Receber" />
+                    <NavItem view="BOLETOS" icon={<FileText size={20} />} label="Boletos" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* COMERCIAL */}
+            {hasSectionAccess(['SALES', 'SALES_HISTORY', 'QUOTES', 'CUSTOMERS']) && (
+              <div>
+                <NavCategoryBtn
+                  title="Comercial"
+                  isOpen={expandedSections.comercial}
+                  onClick={() => toggleSection('comercial')}
+                />
+                {(expandedSections.comercial || !isSidebarOpen) && (
+                  <div className="space-y-1 animate-fade-in-down">
+                    <NavItem view="SALES" icon={<ShoppingCart size={20} />} label="Vendas / PDV" />
+                    <NavItem view="SALES_HISTORY" icon={<History size={20} />} label="Histórico de Vendas" />
+                    <NavItem view="QUOTES" icon={<FileSpreadsheet size={20} />} label="Orçamentos" />
+                    <NavItem view="CUSTOMERS" icon={<UserCheck size={20} />} label="Clientes" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* OPERAÇÃO */}
+            {hasSectionAccess(['INVENTORY', 'PRODUCTION', 'SUPPLIERS', 'ORDERS', 'DELIVERIES']) && (
+              <div>
+                <NavCategoryBtn
+                  title="Operação"
+                  isOpen={expandedSections.operacao}
+                  onClick={() => toggleSection('operacao')}
+                />
+                {(expandedSections.operacao || !isSidebarOpen) && (
+                  <div className="space-y-1 animate-fade-in-down">
+                    <NavItem view="INVENTORY" icon={<Package size={20} />} label="Estoque" />
+                    <NavItem view="PRODUCTION" icon={<Wrench size={20} />} label="Produção" />
+                    <NavItem view="SUPPLIERS" icon={<Users size={20} />} label="Fornecedores" />
+                    <NavItem view="ORDERS" icon={<Package size={20} />} label="Encomendas" />
+                    <NavItem view="DELIVERIES" icon={<Truck size={20} />} label="Entregas" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SISTEMA */}
+            {hasSectionAccess(['IMPORT_EXPORT', 'SETTINGS']) && (
+              <div>
+                <NavCategoryBtn
+                  title="Sistema"
+                  isOpen={expandedSections.sistema}
+                  onClick={() => toggleSection('sistema')}
+                />
+                {(expandedSections.sistema || !isSidebarOpen) && (
+                  <div className="space-y-1 animate-fade-in-down">
+                    <NavItem view="SETTINGS" icon={<Settings size={20} />} label="Configurações" />
+                  </div>
+                )}
+              </div>
+            )}
+          </nav>
+
+          <div className="p-4 border-t border-wine-800">
+            {isSidebarOpen && (
+              <div className="px-4 py-2 mb-2 text-xs text-wine-300">
+                <span className="opacity-75">Acesso: </span>
+                <span className="font-bold text-white uppercase">{userRoles.join(', ') || 'Sem Função'}</span>
+              </div>
+            )}
+            <button
+              onClick={() => {
+                updateHasSelectedModule(false);
+                signOut();
+              }}
+              className={`flex items-center ${isSidebarOpen ? 'gap-3 px-4' : 'justify-center px-0'} py-2 text-wine-200 hover:text-white hover:bg-wine-800 rounded-lg transition-colors w-full`}
+              title={!isSidebarOpen ? 'Sair' : undefined}
+            >
+              <LogOut size={20} className="shrink-0" />
+              {isSidebarOpen && <span>Sair</span>}
+            </button>
+          </div>
+        </aside>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-full overflow-hidden print:overflow-visible print:h-auto">
         {/* Topbar */}
-        <header className="h-16 theme-bg-secondary border-b theme-border-primary flex items-center justify-between px-6 shadow-sm z-20 transition-colors duration-200 print:hidden">
-          <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="theme-text-primary dark:text-wine-100 hover:opacity-80 transition-colors focus:outline-none" title="Alternar Menu">
-            <Menu size={24} />
-          </button>
+        <header className={`${isMobile ? 'h-14 px-4' : 'h-16 px-6'} theme-bg-secondary border-b theme-border-primary flex items-center justify-between shadow-sm z-20 transition-colors duration-200 print:hidden`}>
+          {isMobile ? (
+            /* Mobile Topbar - simplified */
+            <>
+              <button
+                onClick={() => updateHasSelectedModule(false)}
+                className="flex items-center gap-2"
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: companySettings.primaryColor }}>
+                  {companySettings.name?.charAt(0) || 'G'}
+                </div>
+                <span className="font-bold text-sm text-gray-900 dark:text-white truncate max-w-[140px]">{companySettings.name}</span>
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    refreshData();
+                    addNotification('Sincronizando dados...', 'info');
+                  }}
+                  className="p-2 rounded-full text-gray-500 dark:text-slate-400"
+                >
+                  <RefreshCcw size={18} />
+                </button>
+              </div>
+            </>
+          ) : (
+            /* Desktop Topbar - full */
+            <>
+              <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="theme-text-primary dark:text-wine-100 hover:opacity-80 transition-colors focus:outline-none" title="Alternar Menu">
+                <Menu size={24} />
+              </button>
 
-          <div className="flex items-center gap-4 ml-auto">
-            <button
-              onClick={() => {
-                refreshData();
-                addNotification('Sincronizando dados...', 'info');
-              }}
-              className="p-2 rounded-full hover:bg-wine-50 dark:hover:bg-slate-700 text-wine-600 dark:text-wine-100 transition-all hover:rotate-180 duration-500"
-              title="Sincronizar Dados"
-            >
-              <RefreshCcw size={20} />
-            </button>
+              <div className="flex items-center gap-4 ml-auto">
+                <button
+                  onClick={() => {
+                    refreshData();
+                    addNotification('Sincronizando dados...', 'info');
+                  }}
+                  className="p-2 rounded-full hover:bg-wine-50 dark:hover:bg-slate-700 text-wine-600 dark:text-wine-100 transition-all hover:rotate-180 duration-500"
+                  title="Sincronizar Dados"
+                >
+                  <RefreshCcw size={20} />
+                </button>
 
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 rounded-full hover:bg-white/10 dark:hover:bg-slate-700 text-wine-600 dark:text-yellow-400 transition-colors"
-              title="Alternar Tema"
-            >
-              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
+                <button
+                  onClick={toggleDarkMode}
+                  className="p-2 rounded-full hover:bg-white/10 dark:hover:bg-slate-700 text-wine-600 dark:text-yellow-400 transition-colors"
+                  title="Alternar Tema"
+                >
+                  {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+                </button>
 
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold text-wine-900 dark:text-white">{user.email}</p>
-              <p className="text-xs text-wine-500 dark:text-slate-400">
-                {currentUserProfile?.department || 'Usuário'}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-wine-100 dark:bg-slate-700 text-wine-900 dark:text-wine-100 rounded-full flex items-center justify-center font-bold">
-              {user.email?.charAt(0).toUpperCase()}
-            </div>
-          </div>
+                <div className="text-right hidden sm:block">
+                  <p className="text-sm font-bold text-wine-900 dark:text-white">{user.email}</p>
+                  <p className="text-xs text-wine-500 dark:text-slate-400">
+                    {currentUserProfile?.department || 'Usuário'}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-wine-100 dark:bg-slate-700 text-wine-900 dark:text-wine-100 rounded-full flex items-center justify-center font-bold">
+                  {user.email?.charAt(0).toUpperCase()}
+                </div>
+              </div>
+            </>
+          )}
         </header>
 
         {/* View Area */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6 theme-bg-secondary dark:bg-slate-900 transition-colors duration-200 print:overflow-visible print:h-auto print:p-0">
-          <div className="max-w-7xl mx-auto animate-fade-in h-full">
+        <main className={`flex-1 overflow-y-auto ${isMobile ? 'p-3 pb-20' : 'p-6'} theme-bg-secondary dark:bg-slate-900 transition-colors duration-200 print:overflow-visible print:h-auto print:p-0`}>
+          <div className={`${isMobile ? '' : 'max-w-7xl mx-auto'} animate-fade-in h-full`}>
             {renderView()}
           </div>
         </main>
 
-        <MobileBottomNav />
+        {/* Mobile Bottom Nav */}
+        {isMobile && <MobileBottomNav />}
       </div>
 
-      {/* Mobile Overlay */}
-      {isSidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          className="md:hidden fixed inset-0 bg-wine-950/50 backdrop-blur-sm z-20"
-        />
-      )}
+      {/* Mobile Drawer */}
+      {isMobile && <MobileDrawer />}
     </div>
   );
 };

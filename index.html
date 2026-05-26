@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gestão Pro Master</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              wine: {
+                50: 'rgb(var(--color-wine-50) / <alpha-value>)',
+                100: 'rgb(var(--color-wine-100) / <alpha-value>)',
+                200: 'rgb(var(--color-wine-200) / <alpha-value>)',
+                300: 'rgb(var(--color-wine-300) / <alpha-value>)',
+                400: 'rgb(var(--color-wine-400) / <alpha-value>)',
+                500: 'rgb(var(--color-wine-500) / <alpha-value>)',
+                600: 'rgb(var(--color-wine-600) / <alpha-value>)',
+                700: 'rgb(var(--color-wine-700) / <alpha-value>)',
+                800: 'rgb(var(--color-wine-800) / <alpha-value>)',
+                900: 'rgb(var(--color-wine-900) / <alpha-value>)',
+                950: 'rgb(var(--color-wine-950) / <alpha-value>)',
+              },
+              gold: {
+                50: '#fdf9ef',
+                100: '#faf0d3',
+                200: '#f4dfa5',
+                300: '#edc96d',
+                400: '#e6b33e',
+                500: '#d4982a',
+                600: '#b87a20',
+                700: '#995c1d',
+                800: '#7d4a1f',
+                900: '#683d1e',
+                950: '#3b1e0d',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* Custom Scrollbar for cleaner look */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f7f7f7;
+      }
+      .dark ::-webkit-scrollbar-track {
+        background: #1e293b;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #a3a3a3;
+        border-radius: 4px;
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #475569;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #d4982a;
+      }
+    </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-wine-50 dark:bg-slate-900 text-wine-950 dark:text-wine-100 antialiased transition-colors duration-300">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

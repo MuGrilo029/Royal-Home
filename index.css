@@ -1,0 +1,113 @@
+/* Global styles for Vite + Tailwind integration */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --company-primary: #1a1a1a;
+  --company-secondary: #E5E7EB;
+  
+  /* Default wine color palette (RGB values for CSS var() use) */
+  --color-wine-50: 247 247 247;
+  --color-wine-100: 232 232 232;
+  --color-wine-200: 212 212 212;
+  --color-wine-300: 163 163 163;
+  --color-wine-400: 115 115 115;
+  --color-wine-500: 82 82 82;
+  --color-wine-600: 64 64 64;
+  --color-wine-700: 51 51 51;
+  --color-wine-800: 38 38 38;
+  --color-wine-900: 26 26 26;
+  --color-wine-950: 13 13 13;
+  
+  /* Theme color derivations */
+  --company-primary-light: #4a4a4a;
+  --company-primary-lighter: #7a7a7a;
+  --company-primary-very-light: #f5f5f5;
+  --company-secondary-dark: #d1d5db;
+  --company-text-primary: #ffffff;
+  --company-text-secondary: rgba(255, 255, 255, 0.8);
+}
+
+/* Theme color utilities */
+.theme-colors {
+  color: var(--company-primary);
+}
+
+.theme-bg-primary {
+  background-color: var(--company-primary) !important;
+}
+
+.theme-bg-primary-light {
+  background-color: var(--company-primary-light) !important;
+}
+
+.theme-bg-primary-lighter {
+  background-color: var(--company-primary-lighter) !important;
+}
+
+.theme-bg-primary-very-light {
+  background-color: var(--company-primary-very-light) !important;
+}
+
+.theme-bg-secondary {
+  background-color: var(--company-secondary) !important;
+}
+
+.theme-bg-secondary-dark {
+  background-color: var(--company-secondary-dark) !important;
+}
+
+.theme-border-primary {
+  border-color: var(--company-primary) !important;
+}
+
+.theme-border-primary-light {
+  border-color: var(--company-primary-light) !important;
+}
+
+.theme-border-secondary {
+  border-color: var(--company-secondary) !important;
+}
+
+.theme-text-primary {
+  color: var(--company-primary) !important;
+}
+
+.theme-text-primary-light {
+  color: var(--company-primary-light) !important;
+}
+
+.theme-text-on-primary {
+  color: var(--company-text-primary) !important;
+}
+
+.theme-text-on-primary-secondary {
+  color: var(--company-text-secondary) !important;
+}
+
+.theme-hover-primary:hover {
+  background-color: var(--company-primary-light) !important;
+}
+
+.theme-shadow-primary {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+

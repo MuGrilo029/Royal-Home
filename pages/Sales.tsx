@@ -720,8 +720,8 @@ export const Sales: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-140px)]">
-          <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+        <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-140px)]">
+          <div className="flex-1 flex flex-col gap-4 lg:overflow-hidden min-h-[50vh]">
             {/* SEARCH & FILTERS */}
             <div className="flex justify-between items-center mb-2 px-1">
               <h2 className="text-xl font-bold text-wine-900 dark:text-white uppercase tracking-tight">Seleção de Produtos</h2>
@@ -778,7 +778,7 @@ export const Sales: React.FC = () => {
                 </div>
               </div>
             </Card>
-            <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="flex-1 lg:overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
               {/* ITEM AVULSO CARD */}
               <div
                 onClick={() => setShowCustomItemModal(true)}
@@ -788,8 +788,8 @@ export const Sales: React.FC = () => {
                   <Plus size={32} />
                 </div>
                 <div className="text-center">
-                  <h3 className="font-bold text-lg text-wine-700 dark:text-wine-300">Item Avulso</h3>
-                  <p className="text-sm text-gray-400">Adicionar produto sem estoque</p>
+                  <h3 className="font-bold text-sm md:text-lg text-wine-700 dark:text-wine-300">Item Avulso</h3>
+                  <p className="text-xs md:text-sm text-gray-400">Adicionar produto</p>
                 </div>
                 <div className="mt-2 text-wine-900 font-bold opacity-50">
                   R$ 0,00
@@ -799,11 +799,11 @@ export const Sales: React.FC = () => {
               {filteredProducts.map(p => (
                 <div key={p.id} onClick={() => addToCart(p)} className="bg-white dark:bg-slate-800 p-4 rounded-xl border hover:shadow-md cursor-pointer flex flex-col h-fit gap-4">
                   <div>
-                    {p.image && <img src={p.image} alt={p.name} className="w-full h-32 object-cover rounded-lg mb-2" />}
-                    <h3 className="font-bold line-clamp-2">{p.name}</h3>
+                    {p.image && <img src={p.image} alt={p.name} className="w-full h-24 md:h-32 object-cover rounded-lg mb-2" />}
+                    <h3 className="font-bold text-sm md:text-base line-clamp-2">{p.name}</h3>
                     <p className="text-sm text-gray-400">{p.category}</p>
                   </div>
-                  <div className="flex justify-between items-center"><span className="font-bold text-lg">R$ {p.price.toFixed(2)}</span><Plus size={20} className="text-wine-900" /></div>
+                  <div className="flex justify-between items-center"><span className="font-bold text-sm md:text-lg truncate">R$ {p.price.toFixed(2)}</span><Plus size={20} className="text-wine-900 shrink-0 ml-1" /></div>
                 </div>
               ))}
             </div>

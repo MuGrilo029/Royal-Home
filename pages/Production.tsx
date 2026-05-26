@@ -639,9 +639,9 @@ export const Production: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 min-h-0">
+        <div className="flex md:grid md:grid-cols-3 gap-6 flex-1 min-h-0 overflow-x-auto snap-x snap-mandatory custom-scrollbar pb-4 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0">
           {/* PENDING COLUMN */}
-          <div className="bg-wine-50/50 dark:bg-slate-800/50 rounded-xl p-4 flex flex-col border border-wine-100 dark:border-slate-700">
+          <div className="bg-wine-50/50 dark:bg-slate-800/50 rounded-xl p-4 flex flex-col border border-wine-100 dark:border-slate-700 min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center shrink-0 md:shrink">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-wine-800 dark:text-white flex items-center gap-2">
                 <Clock size={18} /> A Fazer
@@ -657,7 +657,7 @@ export const Production: React.FC = () => {
           </div>
 
           {/* IN PROGRESS COLUMN */}
-          <div className="bg-blue-50/30 dark:bg-blue-900/10 rounded-xl p-4 flex flex-col border border-blue-100 dark:border-blue-900/30">
+          <div className="bg-blue-50/30 dark:bg-blue-900/10 rounded-xl p-4 flex flex-col border border-blue-100 dark:border-blue-900/30 min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center shrink-0 md:shrink">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-blue-800 dark:text-blue-300 flex items-center gap-2">
                 <PlayCircle size={18} /> Em Produção
@@ -673,7 +673,7 @@ export const Production: React.FC = () => {
           </div>
 
           {/* COMPLETED COLUMN */}
-          <div className="bg-emerald-50/30 dark:bg-emerald-900/10 rounded-xl p-4 flex flex-col border border-emerald-100 dark:border-emerald-900/30">
+          <div className="bg-emerald-50/30 dark:bg-emerald-900/10 rounded-xl p-4 flex flex-col border border-emerald-100 dark:border-emerald-900/30 min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center shrink-0 md:shrink">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
                 <CheckCircle size={18} /> Concluídos

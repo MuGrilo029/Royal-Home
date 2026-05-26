@@ -272,8 +272,9 @@ export const Dashboard: React.FC = () => {
           <p className="text-wine-500 dark:text-slate-400 text-sm font-medium">Controle financeiro e análise de performance</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 p-2 rounded-2xl border border-wine-100 dark:border-slate-700 shadow-xl flex flex-col md:flex-row items-center gap-2">
-          <div className="flex bg-wine-50 dark:bg-slate-700 p-1 rounded-xl">
+        <div className="bg-white dark:bg-slate-800 p-2 rounded-2xl border border-wine-100 dark:border-slate-700 shadow-xl flex flex-col md:flex-row items-start md:items-center gap-2 w-full">
+          <div className="flex bg-wine-50 dark:bg-slate-700 p-1 rounded-xl w-full md:w-auto overflow-x-auto custom-scrollbar">
+            <div className="flex min-w-max gap-1">
             {[
               { id: 'TODAY', label: 'Hoje' },
               { id: 'WEEK', label: '7 Dias' },
@@ -289,9 +290,10 @@ export const Dashboard: React.FC = () => {
                 {r.label}
               </button>
             ))}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
             {(timeRange === 'MONTH' || timeRange === 'YEAR') && (
               <>
                 {timeRange === 'MONTH' && (
@@ -338,7 +340,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* 3-PANEL SUMMARY LAYER */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="flex lg:grid lg:grid-cols-3 gap-6 mb-8 overflow-x-auto snap-x snap-mandatory custom-scrollbar pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 lg:pb-0">
         
         {/* PANEL 1: RESULTADO FINANCEIRO */}
         <SummaryPanel 
@@ -553,7 +555,7 @@ const SummaryPanel = ({ title, heroLabel, heroValue, heroPrevValue, heroInverse,
   const isNeutral = change === 0;
 
   return (
-    <Card className="p-6 flex flex-col h-full bg-white dark:bg-slate-800 border border-wine-50 dark:border-slate-700/50 shadow-xl hover:shadow-2xl transition-all relative overflow-hidden group">
+    <Card className="p-6 flex flex-col h-full bg-white dark:bg-slate-800 border border-wine-50 dark:border-slate-700/50 shadow-xl hover:shadow-2xl transition-all relative overflow-hidden group min-w-[85vw] sm:min-w-[300px] lg:min-w-0 snap-center shrink-0 lg:shrink">
       {/* Background decoration */}
       <div className="absolute -right-6 -top-6 opacity-[0.03] transform scale-[2] pointer-events-none group-hover:scale-[2.2] transition-transform duration-500 text-wine-900 dark:text-white">
         {icon}

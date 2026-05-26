@@ -250,6 +250,35 @@ const AppContent: React.FC = () => {
   // Helper to check if a section should be visible
   const hasSectionAccess = (views: AppView[]) => views.some(v => hasAccess(v));
 
+  const MobileBottomNav = () => {
+    return (
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-slate-900 border-t border-wine-100 dark:border-slate-800 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] z-40 flex justify-around items-center px-1 pb-safe transition-colors duration-200">
+        {hasAccess('DASHBOARD') && (
+          <button onClick={() => navigateTo('DASHBOARD')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${currentView === 'DASHBOARD' ? 'text-wine-700 dark:text-wine-400 scale-110 transition-transform' : 'text-slate-400 hover:text-wine-600 dark:hover:text-wine-300 transition-colors'}`}>
+            <LayoutDashboard size={20} />
+            <span className="text-[10px] font-bold tracking-tight">Início</span>
+          </button>
+        )}
+        {hasAccess('SALES') && (
+          <button onClick={() => navigateTo('SALES')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${currentView === 'SALES' ? 'text-wine-700 dark:text-wine-400 scale-110 transition-transform' : 'text-slate-400 hover:text-wine-600 dark:hover:text-wine-300 transition-colors'}`}>
+            <ShoppingCart size={20} />
+            <span className="text-[10px] font-bold tracking-tight">Vendas</span>
+          </button>
+        )}
+        {hasAccess('PRODUCTION') && (
+          <button onClick={() => navigateTo('PRODUCTION')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${currentView === 'PRODUCTION' ? 'text-wine-700 dark:text-wine-400 scale-110 transition-transform' : 'text-slate-400 hover:text-wine-600 dark:hover:text-wine-300 transition-colors'}`}>
+            <Wrench size={20} />
+            <span className="text-[10px] font-bold tracking-tight">Produção</span>
+          </button>
+        )}
+        <button onClick={() => setSidebarOpen(true)} className="flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-400 hover:text-wine-600 dark:hover:text-wine-300 transition-colors">
+          <Menu size={20} />
+          <span className="text-[10px] font-bold tracking-tight">Menu</span>
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div
       className={`flex h-screen overflow-hidden font-sans transition-colors duration-300 ${darkMode ? 'dark' : ''} print:h-auto print:overflow-visible theme-colors`}
@@ -429,11 +458,13 @@ const AppContent: React.FC = () => {
         </header>
 
         {/* View Area */}
-        <main className="flex-1 overflow-y-auto p-6 theme-bg-secondary dark:bg-slate-900 transition-colors duration-200 print:overflow-visible print:h-auto print:p-0">
-          <div className="max-w-7xl mx-auto animate-fade-in">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6 theme-bg-secondary dark:bg-slate-900 transition-colors duration-200 print:overflow-visible print:h-auto print:p-0">
+          <div className="max-w-7xl mx-auto animate-fade-in h-full">
             {renderView()}
           </div>
         </main>
+
+        <MobileBottomNav />
       </div>
 
       {/* Mobile Overlay */}

@@ -931,9 +931,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteProduct = async (id: string) => {
+    const oldProduct = data.products.find((p: Product) => p.id === id);
     setData((prev: any) => ({ ...prev, products: prev.products.filter((i: Product) => i.id !== id) }));
     const { error } = await supabase.from('products').delete().eq('id', id);
-    if (error) addNotification('Erro ao deletar produto', 'error');
+    if (error) {
+      console.error('Erro ao deletar produto:', error);
+      addNotification('Erro ao deletar produto: ' + error.message, 'error');
+      if (oldProduct) {
+        setData((prev: any) => ({ ...prev, products: [...prev.products, oldProduct] }));
+      }
+    } else {
+      addNotification('Produto deletado com sucesso', 'success');
+    }
   };
 
   const registerStockEntry = async (productId: string, quantity: number, cost: number, date: string, observations?: string) => {
@@ -1565,7 +1574,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addDelivery = async (d: Delivery) => {
     setData((prev: any) => ({ ...prev, deliveries: [...prev.deliveries, d] }));
-    await supabase.from('deliveries').insert({
+    const { error } = await supabase.from('deliveries').insert({
       id: d.id,
       customer_name: d.customerName,
       address: d.address,
@@ -1577,26 +1586,64 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       notes: d.notes,
       origin: d.origin
     });
+    if (error) {
+      console.error('Erro ao salvar entrega:', error);
+      addNotification('Erro ao salvar entrega: ' + error.message, 'error');
+      // Rollback local state
+      setData((prev: any) => ({ ...prev, deliveries: prev.deliveries.filter((del: Delivery) => del.id !== d.id) }));
+    }
   };
 
   const updateDeliveryStatus = async (id: string, status: Delivery['status']) => {
+    const oldDelivery = data.deliveries.find((d: Delivery) => d.id === id);
     setData((prev: any) => ({ ...prev, deliveries: prev.deliveries.map((d: Delivery) => d.id === id ? { ...d, status } : d) }));
-    await supabase.from('deliveries').update({ status }).eq('id', id);
+    const { error } = await supabase.from('deliveries').update({ status }).eq('id', id);
+    if (error) {
+      console.error('Erro ao atualizar status da entrega:', error);
+      addNotification('Erro ao atualizar entrega: ' + error.message, 'error');
+      // Rollback
+      if (oldDelivery) {
+        setData((prev: any) => ({ ...prev, deliveries: prev.deliveries.map((d: Delivery) => d.id === id ? oldDelivery : d) }));
+      }
+    } else {
+      addNotification('Status da entrega atualizado com sucesso', 'success');
+    }
   };
 
   const updateDelivery = async (d: Delivery) => {
+    const oldDelivery = data.deliveries.find((i: Delivery) => i.id === d.id);
     setData((prev: any) => ({ ...prev, deliveries: prev.deliveries.map((i: Delivery) => i.id === d.id ? d : i) }));
-    await supabase.from('deliveries').update({
+    const { error } = await supabase.from('deliveries').update({
       date: d.date,
       scheduled_time: d.scheduledTime,
       status: d.status,
       notes: d.notes
     }).eq('id', d.id);
+    if (error) {
+      console.error('Erro ao atualizar entrega:', error);
+      addNotification('Erro ao atualizar entrega: ' + error.message, 'error');
+      // Rollback
+      if (oldDelivery) {
+        setData((prev: any) => ({ ...prev, deliveries: prev.deliveries.map((i: Delivery) => i.id === d.id ? oldDelivery : i) }));
+      }
+    } else {
+      addNotification('Entrega atualizada com sucesso', 'success');
+    }
   };
 
   const deleteDelivery = async (id: string) => {
+    const oldDelivery = data.deliveries.find((d: Delivery) => d.id === id);
     setData((prev: any) => ({ ...prev, deliveries: prev.deliveries.filter((d: Delivery) => d.id !== id) }));
-    await supabase.from('deliveries').delete().eq('id', id);
+    const { error } = await supabase.from('deliveries').delete().eq('id', id);
+    if (error) {
+      console.error('Erro ao deletar entrega:', error);
+      addNotification('Erro ao deletar entrega: ' + error.message, 'error');
+      if (oldDelivery) {
+        setData((prev: any) => ({ ...prev, deliveries: [...prev.deliveries, oldDelivery] }));
+      }
+    } else {
+      addNotification('Entrega deletada com sucesso', 'success');
+    }
   };
 
   // Helper to format specs for delivery notes (Detailed for Driver)
@@ -1623,7 +1670,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addProductionOrder = async (p: ProductionOrder) => {
     setData((prev: any) => ({ ...prev, productionOrders: [...prev.productionOrders, p] }));
-    await supabase.from('production_orders').insert({
+    const { error } = await supabase.from('production_orders').insert({
       id: p.id,
       sale_id: p.saleId,
       customer_name: p.customerName,
@@ -1635,14 +1682,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       date: p.date,
       status: p.status
     });
+    if (error) {
+      console.error('Erro ao salvar ordem de produção:', error);
+      addNotification('Erro ao salvar produção: ' + error.message, 'error');
+      setData((prev: any) => ({ ...prev, productionOrders: prev.productionOrders.filter((o: ProductionOrder) => o.id !== p.id) }));
+    }
   };
 
   const deleteProductionOrder = async (id: string) => {
+    const oldOrder = data.productionOrders.find((o: ProductionOrder) => o.id === id);
     setData((prev: any) => ({ ...prev, productionOrders: prev.productionOrders.filter((o: ProductionOrder) => o.id !== id) }));
-    await supabase.from('production_orders').delete().eq('id', id);
+    const { error } = await supabase.from('production_orders').delete().eq('id', id);
+    if (error) {
+      console.error('Erro ao deletar ordem de produção:', error);
+      addNotification('Erro ao deletar produção: ' + error.message, 'error');
+      if (oldOrder) {
+        setData((prev: any) => ({ ...prev, productionOrders: [...prev.productionOrders, oldOrder] }));
+      }
+    } else {
+      addNotification('Produção deletada com sucesso', 'success');
+    }
   };
 
-  const updateProductionOrderStatus = (id: string, status: ProductionOrder['status']) => {
+  const updateProductionOrderStatus = async (id: string, status: ProductionOrder['status']) => {
+    const oldOrder = data.productionOrders.find((o: ProductionOrder) => o.id === id);
     setData((prev: any) => {
       let newDeliveries = [...prev.deliveries];
       const order = prev.productionOrders.find((o: ProductionOrder) => o.id === id);
@@ -1691,24 +1754,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const newOrders = prev.productionOrders.map((o: ProductionOrder) => o.id === id ? { ...o, status } : o);
 
-      // Persist to Supabase
-      supabase.from('production_orders').update({ status }).eq('id', id).then(({ error }) => {
-        if (error) console.error('Error updating production order:', error);
-      });
-
       return {
         ...prev,
         productionOrders: newOrders,
         deliveries: newDeliveries
       };
     });
+
+    // Persist to Supabase with error handling
+    const { error } = await supabase.from('production_orders').update({ status }).eq('id', id);
+    if (error) {
+      console.error('Erro ao atualizar status da produção:', error);
+      addNotification('Erro ao atualizar produção: ' + error.message, 'error');
+      // Rollback
+      if (oldOrder) {
+        setData((prev: any) => ({
+          ...prev,
+          productionOrders: prev.productionOrders.map((o: ProductionOrder) => o.id === id ? oldOrder : o)
+        }));
+      }
+    } else {
+      addNotification('Status da produção atualizado com sucesso', 'success');
+    }
   };
 
   const updateCompanySettings = async (s: CompanySettings) => {
     setData((prev: any) => ({ ...prev, companySettings: s }));
 
     // Upsert logic for single row settings
-    const { data: existing } = await supabase.from('company_settings').select('id').limit(1).single();
+    const { data: existing, error: fetchError } = await supabase.from('company_settings').select('id').limit(1).single().catch(() => ({ data: null, error: null }));
 
     const payload = {
       name: s.name,
@@ -1723,9 +1797,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     if (existing?.id) {
-      await supabase.from('company_settings').update(payload).eq('id', existing.id);
+      console.log('Atualizando configuração com ID:', existing.id);
+      const { error } = await supabase.from('company_settings').update(payload).eq('id', existing.id);
+      if (error) {
+        console.error('Erro ao atualizar configuração:', error);
+        addNotification('Erro ao salvar configuração: ' + error.message, 'error');
+        // Rollback
+        setData((prev: any) => ({ ...prev, companySettings: data.companySettings }));
+      } else {
+        console.log('Configuração atualizada com sucesso');
+        addNotification('Configurações salvas com sucesso', 'success');
+      }
     } else {
-      await supabase.from('company_settings').insert(payload);
+      console.log('Criando nova configuração');
+      // Add ID for new config
+      const configWithId = { id: getUUID(), ...payload };
+      const { error } = await supabase.from('company_settings').insert([configWithId]);
+      if (error) {
+        console.error('Erro ao criar configuração:', error);
+        addNotification('Erro ao salvar configuração: ' + error.message, 'error');
+        // Rollback
+        setData((prev: any) => ({ ...prev, companySettings: data.companySettings }));
+      } else {
+        console.log('Configuração criada com sucesso');
+        addNotification('Configurações salvas com sucesso', 'success');
+      }
     }
   };
 
@@ -1860,8 +1956,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteCategory = async (id: string) => {
+    const oldCategory = data.categories.find((c: Category) => c.id === id);
     setData((prev: any) => ({ ...prev, categories: prev.categories.filter((c: Category) => c.id !== id) }));
-    await supabase.from('categories').delete().eq('id', id);
+    const { error } = await supabase.from('categories').delete().eq('id', id);
+    if (error) {
+      console.error('Erro ao deletar categoria:', error);
+      addNotification('Erro ao deletar categoria: ' + error.message, 'error');
+      if (oldCategory) {
+        setData((prev: any) => ({ ...prev, categories: [...prev.categories, oldCategory] }));
+      }
+    } else {
+      addNotification('Categoria deletada com sucesso', 'success');
+    }
   };
 
   // User Actions (Profiles)
@@ -1889,8 +1995,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteUser = async (id: string) => {
+    const oldUser = data.users.find((u: User) => u.id === id);
     setData((prev: any) => ({ ...prev, users: prev.users.filter((u: User) => u.id !== id) }));
-    await supabase.from('profiles').delete().eq('id', id);
+    const { error } = await supabase.from('profiles').delete().eq('id', id);
+    if (error) {
+      console.error('Erro ao deletar usuário:', error);
+      addNotification('Erro ao deletar usuário: ' + error.message, 'error');
+      if (oldUser) {
+        setData((prev: any) => ({ ...prev, users: [...prev.users, oldUser] }));
+      }
+    } else {
+      addNotification('Usuário deletado com sucesso', 'success');
+    }
   };
 
   const addQuote = async (q: Quote) => {
@@ -2017,7 +2133,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: o.status,
       notes: o.notes
     });
-    if (error) addNotification('Erro ao salvar encomenda', 'error');
+    if (error) {
+      console.error('Erro ao salvar encomenda:', error);
+      addNotification('Erro ao salvar encomenda: ' + error.message, 'error');
+      // Rollback
+      setData((prev: any) => ({ ...prev, orders: prev.orders.filter((item: Order) => item.id !== o.id) }));
+    } else {
+      addNotification('Encomenda salva com sucesso', 'success');
+    }
   };
 
   const updateOrder = async (o: Order) => {
@@ -2092,15 +2215,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     setData((prev: any) => ({ ...prev, orders: prev.orders.map((item: Order) => item.id === o.id ? o : item) }));
-    await supabase.from('orders').update({
+    const { error } = await supabase.from('orders').update({
       status: o.status,
       notes: o.notes
     }).eq('id', o.id);
+    if (error) {
+      console.error('Erro ao atualizar encomenda:', error);
+      addNotification('Erro ao atualizar encomenda: ' + error.message, 'error');
+      // Rollback
+      if (oldOrder) {
+        setData((prev: any) => ({ ...prev, orders: prev.orders.map((item: Order) => item.id === o.id ? oldOrder : item) }));
+      }
+    } else {
+      addNotification('Encomenda atualizada com sucesso', 'success');
+    }
   };
 
   const deleteOrder = async (id: string) => {
+    const oldOrder = data.orders.find((o: Order) => o.id === id);
     setData((prev: any) => ({ ...prev, orders: prev.orders.filter((o: Order) => o.id !== id) }));
-    await supabase.from('orders').delete().eq('id', id);
+    const { error } = await supabase.from('orders').delete().eq('id', id);
+    if (error) {
+      console.error('Erro ao deletar encomenda:', error);
+      addNotification('Erro ao deletar encomenda: ' + error.message, 'error');
+      if (oldOrder) {
+        setData((prev: any) => ({ ...prev, orders: [...prev.orders, oldOrder] }));
+      }
+    } else {
+      addNotification('Encomenda deletada com sucesso', 'success');
+    }
   };
 
   const addCardFee = async (f: CardFee) => {

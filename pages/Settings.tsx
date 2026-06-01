@@ -247,10 +247,9 @@ export const Settings: React.FC = () => {
 
   // --- Handlers ---
 
-  const handleSaveGeneral = (e: React.FormEvent) => {
+  const handleSaveGeneral = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateCompanySettings(generalForm);
-    alert('Configurações salvas com sucesso!');
+    await updateCompanySettings(generalForm);
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

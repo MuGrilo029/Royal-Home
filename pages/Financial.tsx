@@ -8,8 +8,9 @@ import { parseISO, formatISO, formatDisplayDate, getUUID, isInRange as utilsIsIn
 import { Transaction } from '../types';
 
 export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' }> = ({ type }) => {
-  const { transactions, addTransaction, updateTransaction, deleteTransaction, splitTransactionPayment, categories, categoryGroups, addCategory, addCategoryGroup, suppliers, navigateTo, addNotification } = useAppStore();
+  const { transactions, addTransaction, updateTransaction, deleteTransaction, splitTransactionPayment, categories, categoryGroups, addCategory, addCategoryGroup, suppliers, addSupplier, navigateTo, addNotification } = useAppStore();
   const [showForm, setShowForm] = useState(false);
+  const [quickFormType, setQuickFormType] = useState<'CATEGORY' | 'SUPPLIER'>('CATEGORY');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -231,7 +232,7 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
     } else {
       const today = formatISO(new Date());
       setFormData({
-        type: isPayable ? 'EXPENSE' : 'INCOME',
+        type: (isPayable || isBoletoView) ? 'EXPENSE' : 'INCOME',
         status: isPayable ? 'PAID' : 'PENDING',
         date: today,
         dueDate: today,
@@ -251,6 +252,7 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
     setIsSaving(true);
     try {
       const todayStr = formatISO(new Date());
+      const matchedSupplier = suppliers.find(s => s.name === (formData.category || ''));
       const transactionData: Partial<Transaction> = {
         id: formData.id || getUUID(),
         description: formData.description!,
@@ -263,7 +265,8 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
         hasBoleto: isBoletoView ? true : (formData.hasBoleto || false),
         accountType: formData.accountType || 'VARIABLE',
         installmentsTotal: formData.installmentsTotal,
-        attachmentUrl: formData.attachmentUrl
+        attachmentUrl: formData.attachmentUrl,
+        supplierId: matchedSupplier ? matchedSupplier.id : undefined
       };
 
       if (!isBoletoView) {
@@ -726,7 +729,7 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
 
         {/* TABLE */}
         <Card>
-          <Table headers={['Descrição', 'Categoria', 'Forma Pgto.', 'Vencimento', 'Valor', 'Status', 'Ações']}>
+          <Table headers={['Descrição', isReceivable ? 'Categoria' : 'Categoria / Fornecedor', 'Forma Pgto.', 'Vencimento', 'Valor', 'Status', 'Ações']}>
             {filteredData.map(t => {
               const urgency = checkUrgency(t.dueDate, t.status);
 
@@ -1014,81 +1017,113 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
                   ]}
                 />
               </div>
-              {!isBoletoView && (
-                <button
-                  type="button"
-                  onClick={() => setShowCategoryForm(!showCategoryForm)}
-                  className="mb-1 p-2 h-10 border border-wine-200 dark:border-slate-600 rounded-lg text-wine-600 dark:text-wine-400 hover:bg-wine-50 dark:hover:bg-slate-700 transition-colors"
-                  title="Nova Categoria"
-                >
-                  <Plus size={20} />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCategoryForm(!showCategoryForm);
+                  setQuickFormType('CATEGORY');
+                }}
+                className="mb-1 p-2 h-10 border border-wine-200 dark:border-slate-600 rounded-lg text-wine-600 dark:text-wine-400 hover:bg-wine-50 dark:hover:bg-slate-700 transition-colors"
+                title={isReceivable ? "Nova Categoria" : "Nova Categoria / Fornecedor"}
+              >
+                <Plus size={20} />
+              </button>
             </div>
 
-            {/* FORMULÁRIO RÁPIDO DE CATEGORIA */}
-            {showCategoryForm && !isBoletoView && (
+            {/* FORMULÁRIO RÁPIDO DE CATEGORIA / FORNECEDOR */}
+            {showCategoryForm && (
               <div className="p-3 bg-wine-50/50 dark:bg-slate-900/50 rounded-lg border border-wine-100 dark:border-slate-700 animate-fade-in-down space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-wine-800 dark:text-wine-200">Nova Categoria</span>
+                  <span className="text-[10px] font-black uppercase text-wine-800 dark:text-wine-200">
+                    {quickFormType === 'SUPPLIER' ? 'Novo Fornecedor' : 'Nova Categoria'}
+                  </span>
                   <button type="button" onClick={() => setShowCategoryForm(false)} className="text-wine-400 hover:text-wine-600"><X size={14} /></button>
                 </div>
 
+                {!isReceivable && (
+                  <div className="flex gap-4 text-xs font-bold text-wine-700 dark:text-wine-300 pb-1">
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="quickFormType"
+                        checked={quickFormType === 'CATEGORY'}
+                        onChange={() => setQuickFormType('CATEGORY')}
+                        className="text-wine-800 focus:ring-wine-500"
+                      />
+                      Categoria
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="quickFormType"
+                        checked={quickFormType === 'SUPPLIER'}
+                        onChange={() => setQuickFormType('SUPPLIER')}
+                        className="text-wine-800 focus:ring-wine-500"
+                      />
+                      Fornecedor
+                    </label>
+                  </div>
+                )}
+
                 <Input
-                  placeholder="Nome da Categoria"
+                  placeholder={quickFormType === 'SUPPLIER' ? "Nome do Fornecedor" : "Nome da Categoria"}
                   value={newCategoryName}
                   onChange={e => setNewCategoryName(e.target.value)}
                   className="h-8 text-xs"
                 />
 
-                <div className="flex items-end gap-2">
-                  <div className="flex-1">
-                    <Select
-                      label="Grupo"
-                      value={newGroupId}
-                      onChange={e => setNewGroupId(e.target.value)}
-                      className="h-8 text-xs"
-                    >
-                      <option value="">Sem Grupo</option>
-                      {categoryGroups.map(g => (
-                        <option key={g.id} value={g.id}>{g.name}</option>
-                      ))}
-                    </Select>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowGroupForm(!showGroupForm)}
-                    className="mb-1 p-1 h-8 border border-wine-200 dark:border-slate-600 rounded text-wine-600 dark:text-wine-400"
-                    title="Novo Grupo"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
+                {quickFormType === 'CATEGORY' && (
+                  <>
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <Select
+                          label="Grupo"
+                          value={newGroupId}
+                          onChange={e => setNewGroupId(e.target.value)}
+                          className="h-8 text-xs"
+                        >
+                          <option value="">Sem Grupo</option>
+                          {categoryGroups.map(g => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowGroupForm(!showGroupForm)}
+                        className="mb-1 p-1 h-8 border border-wine-200 dark:border-slate-600 rounded text-wine-600 dark:text-wine-400"
+                        title="Novo Grupo"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
 
-                {showGroupForm && (
-                  <div className="flex gap-1 animate-fade-in">
-                    <Input
-                      placeholder="Nome do Grupo"
-                      value={newGroupName}
-                      onChange={e => setNewGroupName(e.target.value)}
-                      className="h-8 text-xs flex-1"
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={async () => {
-                        if (!newGroupName) return;
-                        const group = { id: getUUID(), name: newGroupName, createdAt: new Date().toISOString() };
-                        await addCategoryGroup(group);
-                        setNewGroupId(group.id);
-                        setNewGroupName('');
-                        setShowGroupForm(false);
-                      }}
-                      className="h-8 px-2"
-                    >
-                      OK
-                    </Button>
-                  </div>
+                    {showGroupForm && (
+                      <div className="flex gap-1 animate-fade-in">
+                        <Input
+                          placeholder="Nome do Grupo"
+                          value={newGroupName}
+                          onChange={e => setNewGroupName(e.target.value)}
+                          className="h-8 text-xs flex-1"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={async () => {
+                            if (!newGroupName) return;
+                            const group = { id: getUUID(), name: newGroupName, createdAt: new Date().toISOString() };
+                            await addCategoryGroup(group);
+                            setNewGroupId(group.id);
+                            setNewGroupName('');
+                            setShowGroupForm(false);
+                          }}
+                          className="h-8 px-2"
+                        >
+                          OK
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <Button
@@ -1100,22 +1135,39 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
                     if (!newCategoryName) return;
                     setIsSavingCategory(true);
                     try {
-                      const cat = {
-                        id: getUUID(),
-                        name: newCategoryName,
-                        type: isReceivable ? 'INCOME' : 'EXPENSE',
-                        groupId: newGroupId || undefined
-                      };
-                      await addCategory(cat);
-                      setFormData({ ...formData, category: cat.name });
+                      if (quickFormType === 'SUPPLIER') {
+                        const newSup = {
+                          id: getUUID(),
+                          name: newCategoryName,
+                          companyName: '',
+                          cpfCnpj: '',
+                          contact: '',
+                          address: '',
+                          category: 'Geral'
+                        };
+                        await addSupplier(newSup);
+                        setFormData({ ...formData, category: newSup.name });
+                        addNotification('Fornecedor cadastrado com sucesso!', 'success');
+                      } else {
+                        const cat = {
+                          id: getUUID(),
+                          name: newCategoryName,
+                          type: isReceivable ? 'INCOME' : 'EXPENSE',
+                          groupId: newGroupId || undefined
+                        };
+                        await addCategory(cat);
+                        setFormData({ ...formData, category: cat.name });
+                        addNotification('Categoria cadastrada com sucesso!', 'success');
+                      }
                       setNewCategoryName('');
+                      setNewGroupId('');
                       setShowCategoryForm(false);
                     } finally {
                       setIsSavingCategory(false);
                     }
                   }}
                 >
-                  Salvar Categoria
+                  {quickFormType === 'SUPPLIER' ? 'Salvar Fornecedor' : 'Salvar Categoria'}
                 </Button>
               </div>
             )}

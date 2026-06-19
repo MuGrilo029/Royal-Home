@@ -833,6 +833,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       date: ut.date,
       due_date: ut.dueDate,
       status: ut.status,
+      supplier_id: ut.supplierId,
+      has_boleto: ut.hasBoleto,
       attachment_url: ut.attachmentUrl,
       account_type: ut.accountType || 'VARIABLE',
       installments_total: ut.installmentsTotal,
@@ -1782,7 +1784,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setData((prev: any) => ({ ...prev, companySettings: s }));
 
     // Upsert logic for single row settings
-    const { data: existing, error: fetchError } = await supabase.from('company_settings').select('id').limit(1).single().catch(() => ({ data: null, error: null }));
+    let existing: any = null;
+    let fetchError: any = null;
+    try {
+      const res = await supabase.from('company_settings').select('id').limit(1).single();
+      existing = res.data;
+      fetchError = res.error;
+    } catch (e) {
+      // Ignore promise rejection
+    }
 
     const payload = {
       name: s.name,

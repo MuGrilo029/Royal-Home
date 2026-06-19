@@ -90,10 +90,12 @@ export const SalesHistory: React.FC = () => {
     // --- ACTIONS ---
     const handlePrintQuick = (sale: Sale) => {
         setViewingSale(sale);
+        setPrintingReceipt(null);  // Limpar recibo anterior
         setTimeout(() => window.print(), 100);
     };
 
     const handlePrintReceipt = (sale: Sale, transaction: any) => {
+        setViewingSale(null);  // Limpar pedido anterior
         setPrintingReceipt({ sale, transaction });
         setTimeout(() => window.print(), 100);
     };

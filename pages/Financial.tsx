@@ -137,9 +137,19 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
     
     // Para Payables e Boletos, junta ambos
     const suppliersList = suppliers.map(s => ({ id: s.id, name: s.name, type: 'Fornecedor' }));
+    const supplierCats = categories.filter(c => c.type === 'SUPPLIER').map(c => ({ id: c.id, name: c.name, type: 'Fornecedor' }));
     const expenseCats = categories.filter(c => c.type === 'EXPENSE').map(c => ({ id: c.id, name: c.name, type: 'Despesa' }));
     
-    return [...suppliersList, ...expenseCats].sort((a, b) => a.name.localeCompare(b.name));
+    // Deduplicate by name (suppliers table + supplier categories may overlap)
+    const allItems = [...suppliersList, ...supplierCats, ...expenseCats];
+    const seen = new Set<string>();
+    const unique = allItems.filter(item => {
+      if (seen.has(item.name)) return false;
+      seen.add(item.name);
+      return true;
+    });
+    
+    return unique.sort((a, b) => a.name.localeCompare(b.name));
   }, [categories, suppliers, isReceivable]);
 
   // --- CÁLCULOS DE TOTAIS (Baseados nos dados filtrados) ---

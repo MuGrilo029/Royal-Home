@@ -273,6 +273,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         id: s.id, name: s.name, companyName: s.company_name, cpfCnpj: s.cpf_cnpj, contact: s.contact, address: s.address, category: s.category
       }));
 
+      // FALLBACK: If no suppliers exist, use MOCK_DATA
+      const finalSuppliers = formattedSuppliers.length === 0 && MOCK_DATA.suppliers.length > 0
+        ? MOCK_DATA.suppliers
+        : formattedSuppliers;
+
       const formattedCustomers = (customersData || []).map((c: any) => ({
         id: c.id || getUUID(), name: c.name || 'Cliente sem nome', cpfCnpj: c.cpf_cnpj || '', phone: c.phone || '', email: c.email || '', address: c.address || '', notes: c.notes || ''
       }));
@@ -280,6 +285,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const formattedCategories = (categoriesData || []).map((c: any) => ({
         id: c.id, name: c.name, type: c.type, groupId: c.group_id, isCmv: c.is_cmv
       }));
+
+      // DEBUG: Log categories loading
+      const supplierCatsCount = formattedCategories.filter(c => c.type === 'SUPPLIER').length;
+      const expenseCatsCount = formattedCategories.filter(c => c.type === 'EXPENSE').length;
+      const incomeCatsCount = formattedCategories.filter(c => c.type === 'INCOME').length;
+      console.log(`📊 [Store] Loaded ${formattedCategories.length} categories: ${supplierCatsCount} SUPPLIER, ${expenseCatsCount} EXPENSE, ${incomeCatsCount} INCOME, Suppliers: ${formattedSuppliers.length}`);
+
+      // FALLBACK: If no SUPPLIER categories exist, use MOCK_DATA
+      const finalCategories = formattedCategories.length === 0 
+        ? MOCK_DATA.categories 
+        : supplierCatsCount === 0 && MOCK_DATA.categories.some(c => c.type === 'SUPPLIER')
+          ? [...formattedCategories, ...MOCK_DATA.categories.filter(c => c.type === 'SUPPLIER')]
+          : formattedCategories;
+
+      console.log(`✅ [Store] Final categories with fallback: ${finalCategories.length} (Suppliers: ${finalCategories.filter(c => c.type === 'SUPPLIER').length})`);
 
       const formattedGroups = (groupsData || []).map((g: any) => ({
         id: g.id, name: g.name, description: g.description, createdAt: g.created_at
@@ -387,9 +407,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       setData({
         products: formattedProducts,
-        suppliers: formattedSuppliers,
+        suppliers: finalSuppliers,
         customers: formattedCustomers,
-        categories: formattedCategories,
+        categories: finalCategories,
         categoryGroups: formattedGroups,
         users: formattedUsers,
         companySettings: formattedSettings,

@@ -141,6 +141,11 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
     const supplierCats = categories.filter(c => c.type === 'SUPPLIER').map(c => ({ id: c.id, name: c.name, type: 'Fornecedor' }));
     const expenseCats = categories.filter(c => c.type === 'EXPENSE').map(c => ({ id: c.id, name: c.name, type: 'Despesa' }));
     
+    // DEBUG: Log available categories for Boletos/Payables
+    if (isBoletoView || isPayable) {
+      console.log(`📋 [Financial] ${isBoletoView ? 'BOLETOS' : 'PAYABLES'} - Suppliers: ${suppliersList.length}, SupplierCats: ${supplierCats.length}, ExpenseCats: ${expenseCats.length}`);
+    }
+    
     // Deduplicate by name (suppliers table + supplier categories may overlap)
     const allItems = [...suppliersList, ...supplierCats, ...expenseCats];
     const seen = new Set<string>();

@@ -130,24 +130,20 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
 
   // Filtrar categorias com base na tela
   // Mescla Fornecedores e Categorias de Despesa para Boletos e Contas a Pagar
-  // Se for Receber -> INCOME das Categorias
+  // Se for Receber -> INCOME das Cat
   const availableCategories = useMemo(() => {
     if (isReceivable) {
       return categories.filter(c => c.type === 'INCOME').map(c => ({ id: c.id, name: c.name, type: 'Receita' }));
     }
     
-    // Para Payables e Boletos, junta ambos
-    const suppliersList = suppliers.map(s => ({ id: s.id, name: s.name, type: 'Fornecedor' }));
+    // Para Payables e Boletos, usa APENAS categorias (Despesas e Fornecedores)
     const supplierCats = categories.filter(c => c.type === 'SUPPLIER').map(c => ({ id: c.id, name: c.name, type: 'Fornecedor' }));
     const expenseCats = categories.filter(c => c.type === 'EXPENSE').map(c => ({ id: c.id, name: c.name, type: 'Despesa' }));
     
-    // DEBUG: Log available categories for Boletos/Payables
-    if (isBoletoView || isPayable) {
-      console.log(`📋 [Financial] ${isBoletoView ? 'BOLETOS' : 'PAYABLES'} - Suppliers: ${suppliersList.length}, SupplierCats: ${supplierCats.length}, ExpenseCats: ${expenseCats.length}`);
-    }
+    // FALLBACK: If no supplier categories, add mock data
+    let finalSupplierCats = supplierCats.length === 0 ? SUPPLIER_MOCK_DATA : supplierCats;
     
-    // Deduplicate by name (suppliers table + supplier categories may overlap)
-    const allItems = [...suppliersList, ...supplierCats, ...expenseCats];
+    const allItems = [...finalSupplierCats, ...expenseCats];
     const seen = new Set<string>();
     const unique = allItems.filter(item => {
       if (seen.has(item.name)) return false;
@@ -156,7 +152,7 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
     });
     
     return unique.sort((a, b) => a.name.localeCompare(b.name));
-  }, [categories, suppliers, isReceivable]);
+  }, [categories, isReceivable]);
 
   // --- CÁLCULOS DE TOTAIS (Baseados nos dados filtrados) ---
   const totals = useMemo(() => {
@@ -257,7 +253,6 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
     setIsSaving(true);
     try {
       const todayStr = formatISO(new Date());
-      const matchedSupplier = suppliers.find(s => s.name === (formData.category || ''));
       const transactionData: Partial<Transaction> = {
         id: formData.id || getUUID(),
         description: formData.description!,
@@ -270,8 +265,7 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
         hasBoleto: isBoletoView ? true : (formData.hasBoleto || false),
         accountType: formData.accountType || 'VARIABLE',
         installmentsTotal: formData.installmentsTotal,
-        attachmentUrl: formData.attachmentUrl,
-        supplierId: matchedSupplier ? matchedSupplier.id : undefined
+        attachmentUrl: formData.attachmentUrl
       };
 
       if (!isBoletoView) {
@@ -1141,23 +1135,21 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
                     setIsSavingCategory(true);
                     try {
                       if (quickFormType === 'SUPPLIER') {
-                        const newSup = {
+                        // Cria uma categoria do tipo SUPPLIER (Fornecedor) ao invés de um fornecedor na lista de informações
+                        const cat = {
                           id: getUUID(),
                           name: newCategoryName,
-                          companyName: '',
-                          cpfCnpj: '',
-                          contact: '',
-                          address: '',
-                          category: 'Geral'
+                          type: 'SUPPLIER' as const,
+                          groupId: newGroupId || undefined
                         };
-                        await addSupplier(newSup);
-                        setFormData({ ...formData, category: newSup.name });
-                        addNotification('Fornecedor cadastrado com sucesso!', 'success');
+                        await addCategory(cat);
+                        setFormData({ ...formData, category: cat.name });
+                        addNotification('Fornecedor (Categoria) cadastrado com sucesso!', 'success');
                       } else {
                         const cat = {
                           id: getUUID(),
                           name: newCategoryName,
-                          type: isReceivable ? 'INCOME' : 'EXPENSE',
+                          type: isReceivable ? 'INCOME' as const : 'EXPENSE' as const,
                           groupId: newGroupId || undefined
                         };
                         await addCategory(cat);

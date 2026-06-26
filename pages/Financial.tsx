@@ -8,7 +8,7 @@ import { parseISO, formatISO, formatDisplayDate, getUUID, isInRange as utilsIsIn
 import { Transaction } from '../types';
 
 export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' }> = ({ type }) => {
-  const { transactions, addTransaction, updateTransaction, deleteTransaction, splitTransactionPayment, categories, categoryGroups, addCategory, addCategoryGroup, suppliers, addSupplier, navigateTo, addNotification } = useAppStore();
+  const { transactions, addTransaction, updateTransaction, deleteTransaction, splitTransactionPayment, categories, categoryGroups, addCategory, addCategoryGroup, navigateTo, addNotification } = useAppStore();
   const [showForm, setShowForm] = useState(false);
   const [quickFormType, setQuickFormType] = useState<'CATEGORY' | 'SUPPLIER'>('CATEGORY');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -140,10 +140,7 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
     const supplierCats = categories.filter(c => c.type === 'SUPPLIER').map(c => ({ id: c.id, name: c.name, type: 'Fornecedor' }));
     const expenseCats = categories.filter(c => c.type === 'EXPENSE').map(c => ({ id: c.id, name: c.name, type: 'Despesa' }));
     
-    // FALLBACK: If no supplier categories, add mock data
-    let finalSupplierCats = supplierCats.length === 0 ? SUPPLIER_MOCK_DATA : supplierCats;
-    
-    const allItems = [...finalSupplierCats, ...expenseCats];
+    const allItems = [...supplierCats, ...expenseCats];
     const seen = new Set<string>();
     const unique = allItems.filter(item => {
       if (seen.has(item.name)) return false;

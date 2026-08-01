@@ -1,17 +1,22 @@
 
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
-import { Card, Button, Input, Table, Modal, formatCpfCnpj, formatPhone } from '../components/UI';
+import { Card, Button, Input, Select, Table, Modal, formatCpfCnpj, formatPhone } from '../components/UI';
 import { Plus, Trash2, Search, Phone, MapPin, Building2, Tag, Edit } from 'lucide-react';
 import { Supplier } from '../types';
 import { getUUID } from '../lib/utils';
 
 export const Suppliers: React.FC = () => {
-    const { suppliers, addSupplier, updateSupplier, deleteSupplier } = useAppStore();
+    const { suppliers, categories, addSupplier, updateSupplier, deleteSupplier } = useAppStore();
     const [showForm, setShowForm] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [formData, setFormData] = useState<Partial<Supplier>>({});
     const [searchTerm, setSearchTerm] = useState('');
+
+    const supplierCategories = (categories || []).filter(c => c.type === 'SUPPLIER');
+    const categoryOptions = supplierCategories.length > 0 
+        ? supplierCategories.map(c => c.name) 
+        : ['Matéria Prima', 'Transporte', 'Serviços', 'Utilidades'];
 
     const handleOpenModal = (supplier?: Supplier) => {
         if (supplier) {
@@ -114,22 +119,16 @@ export const Suppliers: React.FC = () => {
                         />
                     </div>
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-wine-700 dark:text-wine-200 mb-1">
-                            Categoria
-                        </label>
-                        <input
-                            list="categories"
-                            className="w-full px-3 py-2 border border-wine-200 rounded-lg outline-none focus:ring-2 focus:ring-wine-500 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white transition-colors"
+                        <Select
+                            label="Categoria"
                             value={formData.category || ''}
                             onChange={e => setFormData({ ...formData, category: e.target.value })}
-                            placeholder="Ex: Matéria Prima, Transporte..."
-                        />
-                        <datalist id="categories">
-                            <option value="Matéria Prima" />
-                            <option value="Transporte" />
-                            <option value="Serviços" />
-                            <option value="Utilidades" />
-                        </datalist>
+                        >
+                            <option value="">Selecione uma categoria...</option>
+                            {categoryOptions.map((cat, idx) => (
+                                <option key={idx} value={cat}>{cat}</option>
+                            ))}
+                        </Select>
                     </div>
 
                     <div className="md:col-span-2 flex justify-between items-center mt-4 pt-4 border-t border-wine-100 dark:border-slate-700">

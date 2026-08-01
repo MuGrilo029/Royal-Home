@@ -130,7 +130,7 @@ export const Badge: React.FC<{ children: React.ReactNode, color: 'green' | 'red'
   return <span className={`px-2 py-1 rounded-full text-xs font-bold ${colors[color]}`}>{children}</span>;
 };
 
-export const Table: React.FC<{ headers: string[], children: React.ReactNode }> = ({ headers, children }) => (
+export const Table: React.FC<{ headers: (string | React.ReactNode)[], children: React.ReactNode }> = ({ headers, children }) => (
   <div className="overflow-x-auto w-full">
     <table className="w-full text-left border-collapse">
       <thead>

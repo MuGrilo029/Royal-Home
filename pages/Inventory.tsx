@@ -96,7 +96,8 @@ export const Inventory: React.FC = () => {
       minStock: formData.minStock !== undefined ? Number(formData.minStock) : 5,
       category: formData.category || 'Geral',
       image: formData.image || '',
-      description: formData.description || ''
+      description: formData.description || '',
+      observations: formData.observations || ''
     };
 
     if (formData.id) {
@@ -337,13 +338,25 @@ export const Inventory: React.FC = () => {
           </div>
           <div className="col-span-1 md:col-span-2">
             <label className="block text-xs font-semibold text-wine-700 dark:text-wine-200 uppercase tracking-wide mb-1">
-              Descrição Detalhada
+              Descrição Detalhada (Visível para o Cliente)
             </label>
             <textarea
               className="w-full px-4 py-3 rounded-lg bg-white dark:bg-slate-800 border border-wine-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-wine-500 dark:text-white transition-all text-sm resize-none h-24"
               value={formData.description || ''}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Descreva os detalhes luxuosos deste item..."
+              placeholder="Descreva os detalhes deste item para o cliente..."
+            />
+          </div>
+
+          <div className="col-span-1 md:col-span-2">
+            <label className="block text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide mb-1">
+              Observações Internas (Visível Apenas para o Operador)
+            </label>
+            <textarea
+              className="w-full px-4 py-3 rounded-lg bg-amber-50/50 dark:bg-slate-800/80 border border-amber-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:text-white transition-all text-sm resize-none h-20 placeholder-amber-400 dark:placeholder-slate-400"
+              value={formData.observations || ''}
+              onChange={e => setFormData({ ...formData, observations: e.target.value })}
+              placeholder="Anotações internas do operador, fornecedor, avarias, códigos de controle..."
             />
           </div>
 
@@ -520,7 +533,14 @@ export const Inventory: React.FC = () => {
               <td className="py-3 px-4">
                 <div className="flex items-center gap-3">
                   {p.image && <img src={p.image} className="w-8 h-8 rounded-lg object-cover border border-wine-100" alt="" />}
-                  <span className="font-bold text-wine-900 dark:text-wine-100">{p.name}</span>
+                  <div className="flex flex-col">
+                    <span className="font-bold text-wine-900 dark:text-wine-100">{p.name}</span>
+                    {p.observations && (
+                      <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium truncate max-w-[220px]" title={`Obs: ${p.observations}`}>
+                        Obs: {p.observations}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </td>
               <td className="py-3 px-4 text-xs font-bold text-wine-400 dark:text-slate-400">{p.category || '-'}</td>

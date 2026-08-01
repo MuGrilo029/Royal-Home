@@ -33,6 +33,7 @@ export interface Product {
   category?: string;
   image?: string;
   description?: string;
+  observations?: string;
   entryDate?: string;
 }
 

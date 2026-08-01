@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { supabase } from '../lib/supabase';
 import { Card, Button, Input, Select, SearchableSelect, Table, Badge, Modal } from '../components/UI';
-import { Plus, CheckCircle, Trash2, Filter, X, Calendar, DollarSign, AlertCircle, Clock, TrendingUp, Sparkles, CalendarCheck, Search, BellRing, PieChart, FileText, Receipt } from 'lucide-react';
+import { Plus, CheckCircle, Trash2, Filter, X, Calendar, DollarSign, AlertCircle, Clock, TrendingUp, Sparkles, CalendarCheck, Search, BellRing, PieChart, FileText, Receipt, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { parseISO, formatISO, formatDisplayDate, getUUID, isInRange as utilsIsInRange } from '../lib/utils';
 import { Transaction } from '../types';
 
@@ -39,11 +39,26 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  // Estados dos Filtros
+  // Estados dos Filtros e Ordenação
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState(''); // Status Filter
   const [filterAccountType, setFilterAccountType] = useState<'ALL' | 'FIXED' | 'VARIABLE'>('ALL');
+
+  type SortField = 'description' | 'category' | 'paymentMethod' | 'dueDate' | 'amount' | 'status';
+  type SortOrder = 'asc' | 'desc';
+
+  const [sortField, setSortField] = useState<SortField>('dueDate');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
 
   const isInRange = (dateString: string) => {
     return utilsIsInRange(dateString, timeRange, {
@@ -127,6 +142,55 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
       return true;
     });
   }, [transactions, isPayable, isBoletoView, searchTerm, filterCategory, filterStatus, timeRange, selectedMonth, selectedYear, customStart, customEnd, filterAccountType]);
+
+  // Data ordenada por coluna
+  const sortedData = useMemo(() => {
+    return [...filteredData].sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+
+      if (sortField === 'description') {
+        aVal = a.description?.toLowerCase() || '';
+        bVal = b.description?.toLowerCase() || '';
+      } else if (sortField === 'category') {
+        aVal = a.category?.toLowerCase() || '';
+        bVal = b.category?.toLowerCase() || '';
+      } else if (sortField === 'paymentMethod') {
+        aVal = a.paymentMethod?.toLowerCase() || '';
+        bVal = b.paymentMethod?.toLowerCase() || '';
+      } else if (sortField === 'dueDate') {
+        aVal = new Date(a.dueDate.includes('T') ? a.dueDate : `${a.dueDate}T00:00:00`).getTime() || 0;
+        bVal = new Date(b.dueDate.includes('T') ? b.dueDate : `${b.dueDate}T00:00:00`).getTime() || 0;
+      } else if (sortField === 'amount') {
+        aVal = a.amount || 0;
+        bVal = b.amount || 0;
+      } else if (sortField === 'status') {
+        aVal = a.status || '';
+        bVal = b.status || '';
+      }
+
+      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredData, sortField, sortOrder]);
+
+  const renderHeader = (label: string, field: SortField) => {
+    const isActive = sortField === field;
+    return (
+      <div
+        onClick={() => handleSort(field)}
+        className="flex items-center gap-1.5 cursor-pointer select-none hover:text-wine-900 dark:hover:text-white transition-colors"
+      >
+        <span>{label}</span>
+        {isActive ? (
+          sortOrder === 'asc' ? <ArrowUp size={14} className="text-wine-700 dark:text-wine-300" /> : <ArrowDown size={14} className="text-wine-700 dark:text-wine-300" />
+        ) : (
+          <ArrowUpDown size={12} className="opacity-40 hover:opacity-100" />
+        )}
+      </div>
+    );
+  };
 
   // Filtrar categorias com base na tela
   // Mescla Fornecedores e Categorias de Despesa para Boletos e Contas a Pagar
@@ -720,13 +784,18 @@ export const Financial: React.FC<{ type: 'PAYABLES' | 'RECEIVABLES' | 'BOLETOS' 
                 <X size={16} /> Limpar
               </Button>
             </div>
-          </div>
-        )}
-
         {/* TABLE */}
         <Card>
-          <Table headers={['Descrição', isReceivable ? 'Categoria' : 'Categoria / Fornecedor', 'Forma Pgto.', 'Vencimento', 'Valor', 'Status', 'Ações']}>
-            {filteredData.map(t => {
+          <Table headers={[
+            renderHeader('Descrição', 'description'),
+            renderHeader('Categoria', 'category'),
+            renderHeader('Forma Pgto.', 'paymentMethod'),
+            renderHeader('Vencimento', 'dueDate'),
+            renderHeader('Valor', 'amount'),
+            renderHeader('Status', 'status'),
+            'Ações'
+          ]}>
+            {sortedData.map(t => {
               const urgency = checkUrgency(t.dueDate, t.status);
 
               return (
